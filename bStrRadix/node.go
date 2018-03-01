@@ -80,9 +80,7 @@ func (e Edges) Sort() {
 
 func (e *Edges) Replace(atIndex int, edge Edge) {
 	// attention : first we're checking for star : causes malfunction because it's not a slice of pointers
-	edge.hasStar = edge.isStar()
-	edge.hasQueStar = bytes.HasPrefix(edge.label, queStar)
-	edge.hasSlashStar = bytes.HasPrefix(edge.label, slashStar)
+	edge.setStars()
 	// replace it in the slice
 	(*e)[atIndex] = edge
 	// we're always sorting in reverse, so stars are last siblings
@@ -91,15 +89,15 @@ func (e *Edges) Replace(atIndex int, edge Edge) {
 
 func (e *Edges) Add(edge Edge) {
 	// attention : first we're checking for star : causes malfunction because it's not a slice of pointers
-	edge.hasStar = edge.isStar()
-	edge.hasQueStar = bytes.HasPrefix(edge.label, queStar)
-	edge.hasSlashStar = bytes.HasPrefix(edge.label, slashStar)
+	edge.setStars()
 	// add it to the slice
 	*e = append(*e, edge)
 	// we're always sorting in reverse, so stars are last siblings
 	e.Sort()
 }
 
-func (e Edge) isStar() bool {
-	return bytes.HasPrefix(e.label, star) || bytes.HasPrefix(e.label, slashStar) || bytes.HasPrefix(e.label, queStar)
+func (e *Edge) setStars() {
+	e.hasQueStar = len(e.label) >= len(queStar) && bytes.Equal(e.label[0:len(queStar)], queStar)
+	e.hasSlashStar = len(e.label) >= len(slashStar) && bytes.Equal(e.label[0:len(slashStar)], slashStar)
+	e.hasStar = len(e.label) >= len(star) && bytes.Equal(e.label[0:len(star)], star) || e.hasQueStar || e.hasSlashStar
 }

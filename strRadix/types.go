@@ -6,8 +6,9 @@ const (
 	queStar   = "?*"
 	slashStar = "/*"
 	star      = "*"
-	slash     = "/"
+	slashByte = '/'
 	que       = "?"
+	queByte   = '?'
 )
 
 type (

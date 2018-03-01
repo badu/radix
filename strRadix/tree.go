@@ -1,13 +1,12 @@
 package strRadix
 
-import (
-	"strings"
-)
+import "strings"
 
 func (t *Tree) compare(what string) bool {
 	found := false
 	// resetting last removed (since we haven't removed anything)
 	t.lastRemove = ""
+
 	len1 := len(t.curStr)
 	len2 := len(what)
 
@@ -15,7 +14,7 @@ func (t *Tree) compare(what string) bool {
 		if t.curStr[i] != what[i] {
 			if found {
 				t.lastRemove = t.curStr[:i]
-				t.curStr = strings.TrimPrefix(t.curStr, t.lastRemove)
+				t.curStr = t.curStr[len(t.lastRemove):] // equivalent to strings.TrimPrefix(t.curStr, t.lastRemove), but without HasPrefix call
 			}
 			return found
 		}
@@ -32,7 +31,7 @@ func (t *Tree) compare(what string) bool {
 	} else {
 		if len1 > len2 {
 			t.lastRemove = what
-			t.curStr = strings.TrimPrefix(t.curStr, what)
+			t.curStr = t.curStr[len(what):] // equivalent to strings.TrimPrefix(t.curStr, what), but without HasPrefix call
 		} else if len1 == len2 {
 			t.lastRemove = t.curStr
 			t.curStr = "" // would be strings.TrimPrefix(t.curStr, t.curStr)
@@ -63,20 +62,18 @@ func (t *Tree) starSearch(target *Node) (interface{}, bool) {
 	for _, edge := range target.edges {
 		if edge.hasStar {
 			// search key is empty and we're on the "/*" means we're looking for the last sibling of the edge
-			if t.curStr == "" && edge.hasSlashStar {
+			if len(t.curStr) == 0 && edge.hasSlashStar {
 				continue
 			}
 			// different kind of star... ("*" or "?*")
 			t.compare(edge.label)
 
 			// split by slashes so we can build a new key
-			parts := strings.Split(t.curStr, slash)
-
-			switch len(parts) {
-			case 1:
+			slashIdx := strings.IndexByte(t.curStr, slashByte)
+			if slashIdx == -1 {
 				// ok, we had one piece
 				// looking for the question mark - might be handy to give up on this for speed
-				index := strings.Index(t.curStr, que)
+				index := strings.IndexByte(t.curStr, queByte) //index(t.curStr, que)
 				if index > 0 {
 					// collect param value
 					t.params = append(t.params, t.curStr[index:])
@@ -88,18 +85,19 @@ func (t *Tree) starSearch(target *Node) (interface{}, bool) {
 				if edge.hasQueStar && t.lastRemove != que {
 					continue
 				}
+
 				// collect param value
 				t.params = append(t.params, t.curStr)
 				t.curStr = ""
 				// we have a star, no question mark - looking for the node leaf
 				return t.starSearch(edge.child)
-			default:
-				// collect param value
-				t.params = append(t.params, parts[0])
-				// building a new key with the parts that we have
-				t.curStr = strings.Join(parts[1:], slash)
-				return t.starSearch(edge.child)
 			}
+
+			// collect param value
+			t.params = append(t.params, t.curStr[:slashIdx])
+			// building a new key with the firstPart that we have
+			t.curStr = t.curStr[slashIdx+1:]
+			return t.starSearch(edge.child)
 		}
 
 		if t.compare(edge.label) {

@@ -3,12 +3,13 @@ package strRadix
 import "sync"
 
 var (
-	zeroSlice = make([]byte, 0)
-	queStar   = []byte("?*")
-	slashStar = []byte("/*")
-	star      = []byte("*")
-	slash     = []byte("/")
-	que       = []byte("?")
+	zeroSlice      = make([]byte, 0)
+	queStar        = []byte("?*")
+	slashStar      = []byte("/*")
+	star           = []byte("*")
+	slashByte byte = '/'
+	que            = []byte("?")
+	queByte   byte = '?'
 )
 
 type (

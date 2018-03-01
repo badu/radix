@@ -7,7 +7,6 @@ import (
 type (
 	TreeTester struct {
 		Tree
-		//logger func(format string, args ...interface{})
 	}
 	routeAndValue struct {
 		r string
@@ -361,7 +360,9 @@ func TestStarOneRoute(t *testing.T) {
 }
 
 func TestStar(t *testing.T) {
-	t.Logf("%x\n%x\n%x\n%x\n%x\n", queStar, slashStar, star, slash, que)
+	// Valid chars in URI -> https://tools.ietf.org/html/rfc3986#section-2
+	// unwise      = "{" | "}" | "|" | "\" | "^" | "[" | "]" | "`"
+	// reserved    = ";" | "/" | "?" | ":" | "@" | "&" | "=" | "+" | "$" | ","
 	rTree := &TreeTester{Tree: Tree{logger: t.Logf, isStar: true}}
 
 	def := routes{
@@ -396,11 +397,23 @@ func TestStar(t *testing.T) {
 		}, {
 			"tesla/calului/*?*", 220,
 		}, {
+			"tesla/calului/longer/*", 2020,
+		}, {
+			"tesla/calului/longer/|", 2021, // convention : for every star, we have to have "unmet" condition
+		}, {
+			"tesla/calului/larger/*", 2030,
+		}, {
+			"tesla/calului/larger/|", 2031, // convention : for every star, we have to have "unmet" condition
+		}, {
 			"tesla/*/*?*", 200,
 		}, {
 			"tesla/*/paste", 205,
 		}, {
 			"tesla/*/paste/*?*", 210,
+		}, {
+			"tșță", 1111,
+		}, {
+			"tșâță", 11111,
 		},
 	}
 
@@ -430,6 +443,10 @@ func TestStar(t *testing.T) {
 		}, {
 			"tesla/457/doo?search=string", 200,
 		}, {
+			"tesla/calului/longer/done", 2020,
+		}, {
+			"tesla/calului/larger/done", 2030,
+		}, {
 			"trobot", 3,
 		}, {
 			"wakarimasuka", 11,
@@ -452,7 +469,7 @@ func TestStar(t *testing.T) {
 	}
 
 	rTree.PrintTree(nil, 1)
-	t.Log("Test finished.")
+	//t.Log("Test finished.")
 }
 
 func prepareTest(t *testing.T, tree *TreeTester) {

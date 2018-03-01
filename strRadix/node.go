@@ -2,7 +2,6 @@ package strRadix
 
 import (
 	"sort"
-	"strings"
 )
 
 func (n *Node) isLeaf() bool {
@@ -42,7 +41,7 @@ func (n *Node) createNodeWithEdges(newKey string, edgeKey string) *Node {
 				child:  newNode,
 			})
 			// connect to original node
-			remainKey := strings.TrimPrefix(edgeKey, newKey)
+			remainKey := edgeKey[len(newKey):] //strings.TrimPrefix(edgeKey, newKey)
 			newNode.edges.Add(Edge{
 				label:  remainKey,
 				parent: newNode,
@@ -72,9 +71,7 @@ func (e Edges) Sort() {
 
 func (e *Edges) Replace(atIndex int, edge Edge) {
 	// attention : first we're checking for star : causes malfunction because it's not a slice of pointers
-	edge.hasStar = edge.isStar()
-	edge.hasQueStar = strings.HasPrefix(edge.label, queStar)
-	edge.hasSlashStar = strings.HasPrefix(edge.label, slashStar)
+	edge.setStars()
 	// replace it in the slice
 	(*e)[atIndex] = edge
 	// we're always sorting in reverse, so stars are last siblings
@@ -83,15 +80,15 @@ func (e *Edges) Replace(atIndex int, edge Edge) {
 
 func (e *Edges) Add(edge Edge) {
 	// attention : first we're checking for star : causes malfunction because it's not a slice of pointers
-	edge.hasStar = edge.isStar()
-	edge.hasQueStar = strings.HasPrefix(edge.label, queStar)
-	edge.hasSlashStar = strings.HasPrefix(edge.label, slashStar)
+	edge.setStars()
 	// add it to the slice
 	*e = append(*e, edge)
 	// we're always sorting in reverse, so stars are last siblings
 	e.Sort()
 }
 
-func (e Edge) isStar() bool {
-	return strings.HasPrefix(e.label, star) || strings.HasPrefix(e.label, slashStar) || strings.HasPrefix(e.label, queStar)
+func (e *Edge) setStars() {
+	e.hasQueStar = len(e.label) >= len(queStar) && e.label[0:len(queStar)] == queStar                       //strings.HasPrefix(e.label, queStar)
+	e.hasSlashStar = len(e.label) >= len(slashStar) && e.label[0:len(slashStar)] == slashStar               //strings.HasPrefix(e.label, slashStar)
+	e.hasStar = len(e.label) >= len(star) && e.label[0:len(star)] == star || e.hasQueStar || e.hasSlashStar //strings.HasPrefix(e.label, star) || e.hasQueStar || e.hasSlashStar
 }
