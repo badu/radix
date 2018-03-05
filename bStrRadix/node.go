@@ -1,10 +1,5 @@
 package strRadix
 
-import (
-	"bytes"
-	"sort"
-)
-
 func (n *Node) isLeaf() bool {
 	return n.leaf != nil && len(n.edges) == 0
 }
@@ -16,7 +11,7 @@ func (n *Node) createNode(edgeKey, leafKey []byte, value interface{}) {
 			value: value,
 		},
 	}
-	n.edges.Add(Edge{
+	n.edges.add(Edge{
 		label:  edgeKey,
 		parent: n,
 		child:  leafNode,
@@ -28,22 +23,28 @@ func (n *Node) createNodeWithEdges(newKey []byte, edgeKey []byte) *Node {
 		//node is leaf node could not split, return nil
 		return nil
 	}
-
+	var remainKey []byte
+	newKeySize := len(newKey)
+	edgeKeySize := len(edgeKey)
 	for idx, edge := range n.edges {
-		if bytes.Equal(edge.label, edgeKey) {
+		if equal(edge.label, edgeKey) {
 			// backup for split
 			oldNode := edge.child
 			// createNodeWithEdges split node
 			newNode := &Node{}
 			// replace current edge with a new one
-			n.edges.Replace(idx, Edge{
+			n.edges.replace(idx, Edge{
 				label:  newKey,
 				parent: n,
 				child:  newNode,
 			})
-			// connect to original node
-			remainKey := bytes.TrimPrefix(edgeKey, newKey)
-			newNode.edges.Add(Edge{
+			// connect to original node - read as `remainKey := bytes.TrimPrefix(edgeKey, newKey)`
+			if edgeKeySize >= newKeySize && equal(edgeKey[:newKeySize], newKey) {
+				remainKey = edgeKey[newKeySize:]
+			} else {
+				remainKey = edgeKey
+			}
+			newNode.edges.add(Edge{
 				label:  remainKey,
 				parent: newNode,
 				child:  oldNode,
@@ -54,50 +55,8 @@ func (n *Node) createNodeWithEdges(newKey []byte, edgeKey []byte) *Node {
 	return nil
 }
 
-func (e Edges) Len() int {
-	return len(e)
-}
-
-func (e Edges) Less(i, j int) bool {
-	switch bytes.Compare(e[i].label, e[j].label) {
-	case -1:
-		return false
-	case 0, 1:
-		return true
-	default:
-		panic("not fail-able with `bytes.Comparable` bounded [-1, 1].")
-		return true
-	}
-}
-
-func (e Edges) Swap(i, j int) {
-	e[i], e[j] = e[j], e[i]
-}
-
-func (e Edges) Sort() {
-	sort.Sort(e)
-}
-
-func (e *Edges) Replace(atIndex int, edge Edge) {
-	// attention : first we're checking for star : causes malfunction because it's not a slice of pointers
-	edge.setStars()
-	// replace it in the slice
-	(*e)[atIndex] = edge
-	// we're always sorting in reverse, so stars are last siblings
-	e.Sort()
-}
-
-func (e *Edges) Add(edge Edge) {
-	// attention : first we're checking for star : causes malfunction because it's not a slice of pointers
-	edge.setStars()
-	// add it to the slice
-	*e = append(*e, edge)
-	// we're always sorting in reverse, so stars are last siblings
-	e.Sort()
-}
-
 func (e *Edge) setStars() {
-	e.hasQueStar = len(e.label) >= len(queStar) && bytes.Equal(e.label[0:len(queStar)], queStar)
-	e.hasSlashStar = len(e.label) >= len(slashStar) && bytes.Equal(e.label[0:len(slashStar)], slashStar)
-	e.hasStar = len(e.label) >= len(star) && bytes.Equal(e.label[0:len(star)], star) || e.hasQueStar || e.hasSlashStar
+	e.hasQueStar = len(e.label) >= 2 && equal(e.label[:2], queStar)
+	e.hasSlashStar = len(e.label) >= 2 && equal(e.label[:2], slashStar)
+	e.hasStar = len(e.label) >= 1 && equal(e.label[:1], star) || e.hasQueStar || e.hasSlashStar
 }

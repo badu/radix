@@ -1,8 +1,17 @@
 package strRadix
 
 import (
-	"bytes"
+	_ "unsafe"
 )
+
+//go:linkname equal bytes.Equal
+func equal(x, y []byte) bool
+
+//go:linkname index bytes.IndexByte
+func index(s []byte, c byte) int
+
+//go:linkname compare bytes.Compare
+func compare(a, b []byte) int
 
 func (t *Tree) compare(what []byte) bool {
 	found := false
@@ -23,7 +32,7 @@ func (t *Tree) compare(what []byte) bool {
 	}
 
 	if !found {
-		if len1 == len2 && bytes.Equal(t.curStr, what) {
+		if len1 == len2 && equal(t.curStr, what) {
 			// special case : "" not a subset of ""
 			found = true
 			t.lastRemove = t.curStr
@@ -70,11 +79,11 @@ func (t *Tree) starSearch(target *Node) (interface{}, bool) {
 			t.compare(edge.label)
 
 			// split by slashes so we can build a new key
-			slashIdx := bytes.IndexByte(t.curStr, slashByte)
+			slashIdx := index(t.curStr, slashByte)
 			if slashIdx == -1 {
 				// ok, we had one piece
 				// looking for the question mark - might be handy to give up on this for speed
-				index := bytes.IndexByte(t.curStr, queByte) //index(t.curStr, que)
+				index := index(t.curStr, queByte)
 				if index > 0 {
 					// collect param value
 					t.params = append(t.params, t.curStr[index:])
@@ -83,7 +92,7 @@ func (t *Tree) starSearch(target *Node) (interface{}, bool) {
 					return t.starSearch(edge.child)
 				}
 				// don't have a question mark, but we have a star (continue) - looking for the last sibling edge
-				if edge.hasQueStar && !bytes.Equal(t.lastRemove, que) {
+				if edge.hasQueStar && !equal(t.lastRemove, que) {
 					continue
 				}
 				// collect param value
@@ -125,7 +134,7 @@ func (t *Tree) Search(what []byte) (interface{}, bool) {
 func (t *Tree) insert(target *Node, edgeKey []byte, leafKey []byte, value interface{}) {
 	// we've reached leaf
 	if target.isLeaf() {
-		if bytes.Equal(leafKey, target.leaf.key) {
+		if equal(leafKey, target.leaf.key) {
 			// the same leafKey, update value
 			target.leaf.value = value
 		} else {
@@ -142,7 +151,7 @@ func (t *Tree) insert(target *Node, edgeKey []byte, leafKey []byte, value interf
 	for _, edge := range target.edges {
 		t.curStr = edgeKey
 		if t.compare(edge.label) {
-			if bytes.Equal(t.lastRemove, edge.label) {
+			if equal(t.lastRemove, edge.label) {
 				// recurse
 				t.insert(edge.child, t.curStr, leafKey, value)
 				return
@@ -175,7 +184,7 @@ func (t *Tree) Insert(what []byte, value interface{}) {
 
 func (t *Tree) searchLeaf(curNode, parNode *Node, curWhat, what []byte) (*Node, *Node, bool) {
 	if curNode.isLeaf() {
-		return curNode, parNode, bytes.Equal(curNode.leaf.key, what)
+		return curNode, parNode, equal(curNode.leaf.key, what)
 	}
 
 	for _, edge := range curNode.edges {

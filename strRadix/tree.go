@@ -1,6 +1,9 @@
 package strRadix
 
-import "strings"
+import _ "unsafe"
+
+//go:linkname index strings.IndexByte
+func index(s string, c byte) int
 
 func (t *Tree) compare(what string) bool {
 	found := false
@@ -69,11 +72,11 @@ func (t *Tree) starSearch(target *Node) (interface{}, bool) {
 			t.compare(edge.label)
 
 			// split by slashes so we can build a new key
-			slashIdx := strings.IndexByte(t.curStr, slashByte)
+			slashIdx := index(t.curStr, slashByte)
 			if slashIdx == -1 {
 				// ok, we had one piece
 				// looking for the question mark - might be handy to give up on this for speed
-				index := strings.IndexByte(t.curStr, queByte) //index(t.curStr, que)
+				index := index(t.curStr, queByte)
 				if index > 0 {
 					// collect param value
 					t.params = append(t.params, t.curStr[index:])

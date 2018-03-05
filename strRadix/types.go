@@ -1,6 +1,8 @@
 package strRadix
 
-import "sync"
+import (
+	"sync"
+)
 
 const (
 	queStar   = "?*"
